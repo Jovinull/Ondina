@@ -13,6 +13,7 @@ defmodule OndinaApiWeb.Router do
     pipe_through :api
 
     get "/videos", VideoController, :index
+    get "/videos/search", VideoController, :search
     get "/videos/:id", VideoController, :show
     post "/videos/:id/view", VideoController, :view
 

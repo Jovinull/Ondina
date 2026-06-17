@@ -7,8 +7,35 @@ defmodule OndinaApiWeb.VideoController do
   action_fallback OndinaApiWeb.FallbackController
 
   def index(conn, _params) do
-    videos = Catalog.list_videos()
-    json(conn, %{data: videos})
+    videos = Catalog.list_videos() |> Repo.preload(:user)
+    
+    videos_data = Enum.map(videos, fn v ->
+      %{
+        id: v.id,
+        title: v.title,
+        thumbnail_url: v.thumbnail_url,
+        views: v.views,
+        user_name: if(v.user, do: v.user.username, else: "Desconhecido")
+      }
+    end)
+    
+    json(conn, %{data: videos_data})
+  end
+
+  def search(conn, %{"q" => query}) do
+    videos = Catalog.search_videos(query)
+    
+    videos_data = Enum.map(videos, fn v ->
+      %{
+        id: v.id,
+        title: v.title,
+        thumbnail_url: v.thumbnail_url,
+        views: v.views,
+        user_name: if(v.user, do: v.user.username, else: "Desconhecido")
+      }
+    end)
+
+    json(conn, %{data: videos_data})
   end
 
   def create(conn, %{"title" => title, "description" => description, "video" => %Plug.Upload{} = video, "thumbnail" => %Plug.Upload{} = thumbnail}) do

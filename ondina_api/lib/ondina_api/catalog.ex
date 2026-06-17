@@ -29,6 +29,20 @@ defmodule OndinaApi.Catalog do
   end
 
   @doc """
+  Searches for videos by title or description, returning essential preloaded data.
+  """
+  def search_videos(query) do
+    search_term = "%#{query}%"
+    
+    from(v in Video,
+      where: ilike(v.title, ^search_term) or ilike(v.description, ^search_term),
+      order_by: [desc: v.inserted_at],
+      preload: [:user]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single video.
 
   Raises `Ecto.NoResultsError` if the Video does not exist.
