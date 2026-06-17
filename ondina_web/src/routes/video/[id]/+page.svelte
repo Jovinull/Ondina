@@ -1,14 +1,22 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import type { PageData } from './$types';
+	import type { PageData } from './$types';
 	import { Socket } from 'phoenix';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { goto } from '$app/navigation';
 
 	export let data: PageData;
 	const video = data.video;
 
 	let views = $state(video.views);
 	let justUpdated = $state(false);
+	
+	// Reaction States
+	let likesCount = $state(video.likes_count || 0);
+	let dislikesCount = $state(video.dislikes_count || 0);
+	let likeAnimation = $state(false);
+	let dislikeAnimation = $state(false);
 	
 	// Chat States
 	let comments = $state<any[]>([]);
@@ -39,6 +47,20 @@
 			views = payload.views;
 			justUpdated = true;
 			setTimeout(() => { justUpdated = false; }, 600);
+		});
+
+		// Escuta atualização de reações
+		channel.on('reactions_updated', (payload: any) => {
+			if (likesCount !== payload.likes_count) {
+				likesCount = payload.likes_count;
+				likeAnimation = true;
+				setTimeout(() => { likeAnimation = false; }, 300);
+			}
+			if (dislikesCount !== payload.dislikes_count) {
+				dislikesCount = payload.dislikes_count;
+				dislikeAnimation = true;
+				setTimeout(() => { dislikeAnimation = false; }, 300);
+			}
 		});
 
 		// Escuta novos comentários
@@ -86,10 +108,20 @@
 
 		commentContent = ''; 
 	}
+
+	function handleLike() {
+		if (!auth.isAuthenticated) return goto('/login');
+		channel.push('like_video', {});
+	}
+
+	function handleDislike() {
+		if (!auth.isAuthenticated) return goto('/login');
+		channel.push('dislike_video', {});
+	}
 </script>
 
 <!-- Cinematic Mode Container -->
-<div class="relative min-h-screen bg-black text-white overflow-hidden font-sans flex flex-col items-center">
+<div class="relative min-h-[calc(100vh-5rem)] bg-black text-white overflow-hidden font-sans flex flex-col items-center">
 	
 	<!-- Background Dinâmico -->
 	<div class="absolute inset-0 z-0">
@@ -101,28 +133,8 @@
 		<div class="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
 	</div>
 
-	<!-- Top Navigation -->
-	<nav class="absolute top-0 left-0 w-full z-50 p-6 flex justify-between items-center">
-		<a href="/" class="inline-flex items-center space-x-2 text-white/70 hover:text-white transition-colors group backdrop-blur-md bg-black/20 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10">
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-			</svg>
-			<span class="font-medium text-sm">Voltar ao Catálogo</span>
-		</a>
-		{#if auth.isAuthenticated}
-			<div class="flex items-center space-x-4 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-				<span class="text-sm text-white/80">Olá, <strong class="text-purple-400">{auth.user?.username}</strong></span>
-				<button on:click={() => auth.logout()} class="text-xs text-white/50 hover:text-white transition-colors">Sair</button>
-			</div>
-		{:else}
-			<a href="/login" class="text-sm font-medium text-white/80 hover:text-white bg-purple-600/80 hover:bg-purple-500 px-4 py-2 rounded-full transition-colors border border-purple-500/50">
-				Fazer Login
-			</a>
-		{/if}
-	</nav>
-
 	<!-- Main Content Grid -->
-	<main class="relative z-10 w-full max-w-[1400px] px-4 md:px-8 mt-24 mb-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+	<main class="relative z-10 w-full max-w-[1400px] px-4 md:px-8 mt-12 mb-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
 		
 		<!-- Esquerda: Player e Detalhes (Ocupa 3 colunas) -->
 		<div class="lg:col-span-3 flex flex-col items-center">
@@ -167,11 +179,24 @@
 
 				<!-- Interaction Buttons -->
 				<div class="flex space-x-3 shrink-0">
-					<button class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md px-5 py-2.5 rounded-full border border-white/5">
+					<button 
+						on:click={handleLike}
+						class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/5 {likeAnimation ? 'scale-110 text-purple-400' : 'text-white'}"
+					>
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
 						</svg>
-						<span class="font-medium text-sm">Gostei</span>
+						<span class="font-medium text-sm">{likesCount}</span>
+					</button>
+					
+					<button 
+						on:click={handleDislike}
+						class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/5 {dislikeAnimation ? 'scale-110 text-red-400' : 'text-white'}"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+						</svg>
+						<span class="font-medium text-sm">{dislikesCount}</span>
 					</button>
 				</div>
 			</div>
