@@ -5,12 +5,25 @@ defmodule OndinaApiWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :api_auth do
+    plug OndinaApiWeb.Plugs.Auth
+  end
+
   scope "/api", OndinaApiWeb do
     pipe_through :api
 
-    get "/status", StatusController, :index
-    resources "/videos", VideoController, except: [:new, :edit]
+    get "/videos", VideoController, :index
+    get "/videos/:id", VideoController, :show
     post "/videos/:id/view", VideoController, :view
+
+    post "/register", AuthController, :register
+    post "/login", AuthController, :login
+  end
+
+  scope "/api", OndinaApiWeb do
+    pipe_through [:api, :api_auth]
+    
+    get "/me", AuthController, :me
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
