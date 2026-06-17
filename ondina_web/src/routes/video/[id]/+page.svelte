@@ -1,25 +1,55 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import type { PageData } from './$types';
+	import { Socket } from 'phoenix';
 
 	export let data: PageData;
 	const video = data.video;
 
 	let views = $state(video.views);
+	let justUpdated = $state(false);
+	let socket: Socket;
+	let channel: any;
 
 	onMount(async () => {
-		// Incrementa as visualizações
+		// Estabelece a conexão WebSocket com o Phoenix
+		socket = new Socket('ws://localhost:4000/socket', { params: {} });
+		socket.connect();
+
+		// Assina o canal de vídeo específico
+		channel = socket.channel(`video:${video.id}`, {});
+		
+		channel.join()
+			.receive('ok', () => console.log('Joined video channel successfully'))
+			.receive('error', (resp: any) => console.log('Unable to join', resp));
+
+		// Escuta o evento de nova visualização
+		channel.on('new_view', (payload: any) => {
+			views = payload.views;
+			
+			// Ativa a micro-interação visual
+			justUpdated = true;
+			setTimeout(() => {
+				justUpdated = false;
+			}, 600);
+		});
+
+		// Incrementa as visualizações (silencioso)
 		try {
 			const res = await fetch(`http://localhost:4000/api/videos/${video.id}/view`, {
 				method: 'POST'
 			});
-			if (res.ok) {
-				const json = await res.json();
-				views = json.data.views;
+			if (!res.ok) {
+				console.error('Failed to increment views endpoint');
 			}
 		} catch (e) {
 			console.error('Failed to increment views:', e);
 		}
+	});
+
+	onDestroy(() => {
+		if (channel) channel.leave();
+		if (socket) socket.disconnect();
 	});
 
 	function formatViews(v: number): string {
@@ -80,7 +110,9 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 						</svg>
-						<span class="font-medium text-white">{formatViews(views)}</span>
+						<span class="font-medium transition-all duration-300 {justUpdated ? 'text-green-400 scale-110 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-white'}">
+							{formatViews(views)}
+						</span>
 						<span>visualizações</span>
 					</div>
 					<span>•</span>
