@@ -51,6 +51,26 @@ defmodule OndinaApi.Catalog do
   end
 
   @doc """
+  Atomically increments the reactions count for a video.
+  reaction_type should be :like or :dislike.
+  """
+  def react_to_video(id, :like) do
+    {1, _} =
+      from(v in Video, where: v.id == ^id)
+      |> Repo.update_all(inc: [likes_count: 1])
+
+    get_video!(id)
+  end
+
+  def react_to_video(id, :dislike) do
+    {1, _} =
+      from(v in Video, where: v.id == ^id)
+      |> Repo.update_all(inc: [dislikes_count: 1])
+
+    get_video!(id)
+  end
+
+  @doc """
   Creates a video.
 
   ## Examples

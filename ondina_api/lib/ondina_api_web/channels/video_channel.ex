@@ -40,4 +40,28 @@ defmodule OndinaApiWeb.VideoChannel do
         {:reply, {:error, %{reason: "Falha ao salvar o comentário."}}, socket}
     end
   end
+
+  @impl true
+  def handle_in("like_video", _payload, socket) do
+    video_id = socket.assigns.video_id
+    video = OndinaApi.Catalog.react_to_video(video_id, :like)
+    
+    broadcast!(socket, "reactions_updated", %{
+      likes_count: video.likes_count,
+      dislikes_count: video.dislikes_count
+    })
+    {:reply, :ok, socket}
+  end
+
+  @impl true
+  def handle_in("dislike_video", _payload, socket) do
+    video_id = socket.assigns.video_id
+    video = OndinaApi.Catalog.react_to_video(video_id, :dislike)
+    
+    broadcast!(socket, "reactions_updated", %{
+      likes_count: video.likes_count,
+      dislikes_count: video.dislikes_count
+    })
+    {:reply, :ok, socket}
+  end
 end
