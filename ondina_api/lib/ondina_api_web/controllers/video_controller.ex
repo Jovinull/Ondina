@@ -59,4 +59,23 @@ defmodule OndinaApiWeb.VideoController do
     video = Catalog.increment_video_views(id)
     render(conn, :show, video: video)
   end
+
+  def my_videos(conn, _params) do
+    user_id = conn.assigns.current_user.id
+    videos = Catalog.list_videos_for_user(user_id)
+    json(conn, %{data: videos})
+  end
+
+  def delete(conn, %{"id" => id}) do
+    user_id = conn.assigns.current_user.id
+
+    case Catalog.delete_video_with_files(id, user_id) do
+      {:ok, _video} ->
+        send_resp(conn, :no_content, "")
+      {:error, :unauthorized_or_not_found} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "Você não tem permissão para excluir este vídeo."})
+    end
+  end
 end

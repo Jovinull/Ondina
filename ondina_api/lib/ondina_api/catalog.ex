@@ -18,7 +18,14 @@ defmodule OndinaApi.Catalog do
 
   """
   def list_videos do
-    Repo.all(Video)
+    Repo.all(from v in Video, order_by: [desc: v.inserted_at])
+  end
+
+  @doc """
+  Returns the list of videos for a specific user.
+  """
+  def list_videos_for_user(user_id) do
+    Repo.all(from v in Video, where: v.user_id == ^user_id, order_by: [desc: v.inserted_at])
   end
 
   @doc """
@@ -120,6 +127,27 @@ defmodule OndinaApi.Catalog do
   """
   def delete_video(%Video{} = video) do
     Repo.delete(video)
+  end
+
+  @doc """
+  Deletes a video and its associated physical files, validating the user ownership.
+  """
+  def delete_video_with_files(id, user_id) do
+    video = Repo.get(Video, id)
+
+    if video && video.user_id == user_id do
+      # Converter a URL web para o diretório de destino local no Linux
+      video_path = String.replace(video.video_url || "", "http://localhost:4000/uploads/", "priv/static/uploads/")
+      thumb_path = String.replace(video.thumbnail_url || "", "http://localhost:4000/uploads/", "priv/static/uploads/")
+
+      # Tenta remover silenciosamente (ignora falha se arquivo não existir mais)
+      if video_path != "", do: File.rm(video_path)
+      if thumb_path != "", do: File.rm(thumb_path)
+
+      Repo.delete(video)
+    else
+      {:error, :unauthorized_or_not_found}
+    end
   end
 
   @doc """
