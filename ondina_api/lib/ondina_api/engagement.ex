@@ -28,7 +28,8 @@ defmodule OndinaApi.Engagement do
     from(c in Comment,
       where: c.video_id == ^video_id,
       order_by: [desc: c.inserted_at],
-      limit: 50
+      limit: 50,
+      preload: [:user]
     )
     |> Repo.all()
     |> Enum.reverse() # Retorna na ordem cronológica de leitura

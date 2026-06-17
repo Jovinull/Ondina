@@ -3,8 +3,9 @@ defmodule OndinaApi.Engagement.Comment do
   import Ecto.Changeset
 
   schema "comments" do
-    field :author_name, :string
     field :content, :string
+    belongs_to :user, OndinaApi.Accounts.User
+    belongs_to :video, OndinaApi.Catalog.Video, define_field: false
     field :video_id, :id
 
     timestamps(type: :utc_datetime)
@@ -13,7 +14,7 @@ defmodule OndinaApi.Engagement.Comment do
   @doc false
   def changeset(comment, attrs) do
     comment
-    |> cast(attrs, [:content, :author_name])
-    |> validate_required([:content, :author_name])
+    |> cast(attrs, [:content, :video_id, :user_id])
+    |> validate_required([:content, :video_id, :user_id])
   end
 end
