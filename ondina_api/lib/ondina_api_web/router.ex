@@ -9,6 +9,7 @@ defmodule OndinaApiWeb.Router do
     pipe_through :api
 
     get "/status", StatusController, :index
+    resources "/videos", VideoController, except: [:new, :edit]
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
