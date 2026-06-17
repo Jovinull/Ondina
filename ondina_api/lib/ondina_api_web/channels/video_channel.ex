@@ -11,7 +11,7 @@ defmodule OndinaApiWeb.VideoChannel do
       Enum.map(comments, fn c ->
         %{
           id: c.id,
-          author_name: c.author_name,
+          author_name: (if c.user, do: c.user.username, else: "Anônimo"),
           content: c.content,
           inserted_at: c.inserted_at
         }
@@ -22,14 +22,15 @@ defmodule OndinaApiWeb.VideoChannel do
   end
 
   @impl true
-  def handle_in("new_comment", %{"author_name" => author_name, "content" => content}, socket) do
+  def handle_in("new_comment", %{"content" => content}, socket) do
     video_id = socket.assigns.video_id
+    user = socket.assigns.current_user
 
-    case Engagement.create_comment(%{author_name: author_name, content: content, video_id: video_id}) do
+    case Engagement.create_comment(%{user_id: user.id, content: content, video_id: video_id}) do
       {:ok, comment} ->
         broadcast!(socket, "new_comment", %{
           id: comment.id,
-          author_name: comment.author_name,
+          author_name: user.username,
           content: comment.content,
           inserted_at: comment.inserted_at
         })
