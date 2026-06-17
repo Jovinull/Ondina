@@ -1,65 +1,127 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let apiStatus = $state<{ status: string; message: string } | null>(null);
+	interface Video {
+		id: number;
+		title: string;
+		description: string;
+		thumbnail_url: string;
+		video_url: string;
+		views: number;
+	}
+
+	let videos = $state<Video[]>([]);
 	let error = $state<string | null>(null);
 	let isLoading = $state(true);
 
 	onMount(async () => {
 		try {
-			const res = await fetch('http://localhost:4000/api/status');
+			const res = await fetch('http://localhost:4000/api/videos');
 			if (!res.ok) {
 				throw new Error('Network response was not ok');
 			}
-			apiStatus = await res.json();
+			const json = await res.json();
+			videos = json.data || [];
 		} catch (e: any) {
-			error = e.message || 'Failed to connect to the API';
+			error = e.message || 'Failed to fetch videos from the API';
 		} finally {
 			isLoading = false;
 		}
 	});
+
+	// Formata views (ex: 12500 -> 12.5k)
+	function formatViews(views: number): string {
+		if (views >= 1000) {
+			return (views / 1000).toFixed(1) + 'k';
+		}
+		return views.toString();
+	}
 </script>
 
-<div class="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center font-sans relative overflow-hidden">
+<div class="min-h-screen bg-neutral-950 text-white font-sans relative overflow-hidden">
 	<!-- Background glow effects -->
-	<div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-600/30 rounded-full blur-[120px] mix-blend-screen pointer-events-none"></div>
-	<div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-600/30 rounded-full blur-[100px] mix-blend-screen pointer-events-none"></div>
+	<div class="absolute top-0 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px] mix-blend-screen pointer-events-none"></div>
+	<div class="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[150px] mix-blend-screen pointer-events-none"></div>
 
-	<main class="z-10 flex flex-col items-center space-y-12">
-		<!-- Branding -->
-		<div class="text-center space-y-4">
-			<h1 class="text-6xl md:text-8xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text animate-pulse">
-				Ondina
-			</h1>
-			<p class="text-neutral-400 text-xl tracking-wide font-light max-w-md mx-auto">
-				Reinventando a experiência de streaming.
-			</p>
+	<!-- Header Nav -->
+	<nav class="fixed top-0 w-full z-50 bg-neutral-950/80 backdrop-blur-lg border-b border-white/10 px-8 py-4 flex items-center justify-between">
+		<h1 class="text-3xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
+			Ondina
+		</h1>
+		<div class="flex items-center space-x-6">
+			<button class="text-neutral-400 hover:text-white transition">Início</button>
+			<button class="text-neutral-400 hover:text-white transition">Séries</button>
+			<button class="text-neutral-400 hover:text-white transition">Filmes</button>
+			<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 border-2 border-white/20"></div>
+		</div>
+	</nav>
+
+	<main class="relative z-10 pt-32 pb-20 px-8 md:px-16 max-w-screen-2xl mx-auto space-y-12">
+		
+		<div class="space-y-2">
+			<h2 class="text-3xl md:text-4xl font-bold tracking-tight">Em Alta</h2>
+			<p class="text-neutral-400">Os conteúdos mais assistidos do momento.</p>
 		</div>
 
-		<!-- Status Card (Glassmorphism) -->
-		<div class="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl transition-all hover:bg-white/10">
-			<h2 class="text-sm uppercase tracking-widest text-neutral-500 mb-6 font-semibold">
-				System Status
-			</h2>
-			
-			<div class="flex items-center space-x-4">
-				{#if isLoading}
-					<div class="w-4 h-4 rounded-full border-2 border-neutral-500 border-t-transparent animate-spin"></div>
-					<span class="text-neutral-400">Verificando backend...</span>
-				{:else if error}
-					<div class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse"></div>
-					<div class="flex flex-col">
-						<span class="text-red-400 font-medium">API Indisponível</span>
-						<span class="text-xs text-neutral-500 mt-1">Siga as instruções do README para iniciar o servidor Elixir.</span>
-					</div>
-				{:else if apiStatus}
-					<div class="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-					<div class="flex flex-col">
-						<span class="text-emerald-400 font-medium">Conectado</span>
-						<span class="text-xs text-neutral-400 mt-1">{apiStatus.message}</span>
-					</div>
-				{/if}
+		{#if isLoading}
+			<div class="flex justify-center py-20">
+				<div class="w-8 h-8 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
 			</div>
-		</div>
+		{:else if error}
+			<div class="backdrop-blur-md bg-red-500/10 border border-red-500/20 rounded-2xl p-8 text-center max-w-lg mx-auto">
+				<div class="text-red-400 mb-2">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+					</svg>
+				</div>
+				<h3 class="text-lg font-semibold text-white">Oops, algo deu errado</h3>
+				<p class="text-neutral-400 mt-2">{error}</p>
+				<p class="text-xs text-neutral-500 mt-4">Certifique-se de que o backend Elixir está rodando.</p>
+			</div>
+		{:else}
+			<!-- Grid Netflix/YouTube Style -->
+			<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+				{#each videos as video}
+					<!-- Video Card -->
+					<div class="group flex flex-col space-y-3 cursor-pointer">
+						<!-- Thumbnail Wrapper (Glassmorphism & Hover Zoom) -->
+						<div class="relative overflow-hidden rounded-2xl aspect-video bg-neutral-900 border border-white/5 shadow-xl transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl group-hover:border-white/20">
+							<img 
+								src={video.thumbnail_url} 
+								alt={video.title}
+								class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+							/>
+							<!-- Overlay gradient for text readability if needed -->
+							<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+							
+							<!-- Play Button Overlay -->
+							<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+								<div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-1" viewBox="0 0 20 20" fill="currentColor">
+										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+									</svg>
+								</div>
+							</div>
+						</div>
+
+						<!-- Info -->
+						<div class="flex space-x-3 px-1">
+							<!-- Channel Avatar Placeholder -->
+							<div class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500"></div>
+							
+							<div class="flex flex-col flex-grow overflow-hidden">
+								<h3 class="text-white font-medium text-base leading-tight line-clamp-2 group-hover:text-purple-400 transition-colors">
+									{video.title}
+								</h3>
+								<div class="text-neutral-400 text-sm mt-1 flex flex-col">
+									<span class="line-clamp-1">{video.description}</span>
+									<span class="text-neutral-500 text-xs mt-1">{formatViews(video.views)} visualizações • Agora</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</main>
 </div>
