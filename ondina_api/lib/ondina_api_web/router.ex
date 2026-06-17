@@ -10,6 +10,7 @@ defmodule OndinaApiWeb.Router do
 
     get "/status", StatusController, :index
     resources "/videos", VideoController, except: [:new, :edit]
+    post "/videos/:id/view", VideoController, :view
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

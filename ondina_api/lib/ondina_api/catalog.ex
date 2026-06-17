@@ -38,6 +38,17 @@ defmodule OndinaApi.Catalog do
   def get_video!(id), do: Repo.get!(Video, id)
 
   @doc """
+  Increments the views of a video by 1 safely.
+  """
+  def increment_video_views(id) do
+    {1, _} =
+      from(v in Video, where: v.id == ^id)
+      |> Repo.update_all(inc: [views: 1])
+
+    get_video!(id)
+  end
+
+  @doc """
   Creates a video.
 
   ## Examples

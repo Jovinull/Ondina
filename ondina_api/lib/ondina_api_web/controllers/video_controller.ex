@@ -25,6 +25,11 @@ defmodule OndinaApiWeb.VideoController do
     render(conn, :show, video: video)
   end
 
+  def view(conn, %{"id" => id}) do
+    video = Catalog.increment_video_views(id)
+    render(conn, :show, video: video)
+  end
+
   def update(conn, %{"id" => id, "video" => video_params}) do
     video = Catalog.get_video!(id)
 
