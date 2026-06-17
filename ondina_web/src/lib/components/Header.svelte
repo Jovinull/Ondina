@@ -22,6 +22,12 @@
 		<nav>
 			{#if auth.isAuthenticated}
 				<div class="flex items-center space-x-4">
+					<a href="/upload" class="hidden md:flex items-center space-x-2 text-sm font-medium text-white bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded-full border border-white/5">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+						</svg>
+						<span>Novo Vídeo</span>
+					</a>
 					<div class="flex items-center space-x-3 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
 						<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-sm font-bold shadow-inner">
 							{auth.user?.username.charAt(0).toUpperCase()}
