@@ -48,6 +48,7 @@ defmodule OndinaApi.MixProject do
        compile: false,
        depth: 1},
       {:finch, "~> 0.13.0"},
+      {:bcrypt_elixir, "~> 3.0"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.20"},
