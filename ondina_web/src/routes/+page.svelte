@@ -83,7 +83,7 @@
 			<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
 				{#each videos as video}
 					<!-- Video Card -->
-					<div class="group flex flex-col space-y-3 cursor-pointer">
+					<a href="/video/{video.id}" class="group flex flex-col space-y-3 cursor-pointer">
 						<!-- Thumbnail Wrapper (Glassmorphism & Hover Zoom) -->
 						<div class="relative overflow-hidden rounded-2xl aspect-video bg-neutral-900 border border-white/5 shadow-xl transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl group-hover:border-white/20">
 							<img 
@@ -119,7 +119,7 @@
 								</div>
 							</div>
 						</div>
-					</div>
+					</a>
 				{/each}
 			</div>
 		{/if}
