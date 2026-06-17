@@ -7,6 +7,7 @@ defmodule OndinaApi.Accounts.User do
     field :password_hash, :string
     field :username, :string
     field :password, :string, virtual: true
+    has_many :videos, OndinaApi.Catalog.Video
 
     timestamps(type: :utc_datetime)
   end

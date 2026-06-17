@@ -10,6 +10,7 @@ defmodule OndinaApi.Catalog.Video do
     field :views, :integer, default: 0
     field :likes_count, :integer, default: 0
     field :dislikes_count, :integer, default: 0
+    belongs_to :user, OndinaApi.Accounts.User
 
     timestamps(type: :utc_datetime)
   end
@@ -17,7 +18,7 @@ defmodule OndinaApi.Catalog.Video do
   @doc false
   def changeset(video, attrs) do
     video
-    |> cast(attrs, [:title, :description, :thumbnail_url, :video_url, :views, :likes_count, :dislikes_count])
-    |> validate_required([:title, :description, :thumbnail_url, :video_url, :views])
+    |> cast(attrs, [:title, :description, :thumbnail_url, :video_url, :views, :likes_count, :dislikes_count, :user_id])
+    |> validate_required([:title, :description, :thumbnail_url, :video_url])
   end
 end
