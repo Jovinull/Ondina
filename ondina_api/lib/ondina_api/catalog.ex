@@ -45,7 +45,9 @@ defmodule OndinaApi.Catalog do
       from(v in Video, where: v.id == ^id)
       |> Repo.update_all(inc: [views: 1])
 
-    get_video!(id)
+    video = get_video!(id)
+    OndinaApiWeb.Endpoint.broadcast("video:#{video.id}", "new_view", %{views: video.views})
+    video
   end
 
   @doc """

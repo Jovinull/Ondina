@@ -15,6 +15,10 @@ defmodule OndinaApiWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  socket "/socket", OndinaApiWeb.UserSocket,
+    websocket: [check_origin: ["http://localhost:5173"]],
+    longpoll: false
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest
