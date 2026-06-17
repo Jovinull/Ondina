@@ -24,6 +24,7 @@ defmodule OndinaApiWeb.Router do
     pipe_through [:api, :api_auth]
     
     get "/me", AuthController, :me
+    post "/videos", VideoController, :create
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
