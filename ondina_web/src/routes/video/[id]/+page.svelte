@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import type { PageData } from './$types';
 	import { Socket } from 'phoenix';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	export let data: PageData;
 	const video = data.video;
@@ -11,7 +12,6 @@
 	
 	// Chat States
 	let comments = $state<any[]>([]);
-	let authorName = $state('');
 	let commentContent = $state('');
 	let chatContainer: HTMLElement;
 
@@ -20,7 +20,7 @@
 
 	onMount(async () => {
 		// Estabelece a conexão WebSocket com o Phoenix
-		socket = new Socket('ws://localhost:4000/socket', { params: {} });
+		socket = new Socket('ws://localhost:4000/socket', { params: { token: auth.token } });
 		socket.connect();
 
 		// Assina o canal de vídeo específico
@@ -78,14 +78,13 @@
 
 	function submitComment(e: Event) {
 		e.preventDefault();
-		if (!authorName.trim() || !commentContent.trim()) return;
+		if (!auth.isAuthenticated || !commentContent.trim()) return;
 
 		channel.push('new_comment', {
-			author_name: authorName,
 			content: commentContent
 		});
 
-		commentContent = ''; // Limpa a mensagem, mantém o nome
+		commentContent = ''; 
 	}
 </script>
 
@@ -103,13 +102,23 @@
 	</div>
 
 	<!-- Top Navigation -->
-	<nav class="absolute top-0 left-0 w-full z-50 p-6">
+	<nav class="absolute top-0 left-0 w-full z-50 p-6 flex justify-between items-center">
 		<a href="/" class="inline-flex items-center space-x-2 text-white/70 hover:text-white transition-colors group backdrop-blur-md bg-black/20 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10">
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 			</svg>
 			<span class="font-medium text-sm">Voltar ao Catálogo</span>
 		</a>
+		{#if auth.isAuthenticated}
+			<div class="flex items-center space-x-4 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+				<span class="text-sm text-white/80">Olá, <strong class="text-purple-400">{auth.user?.username}</strong></span>
+				<button on:click={() => auth.logout()} class="text-xs text-white/50 hover:text-white transition-colors">Sair</button>
+			</div>
+		{:else}
+			<a href="/login" class="text-sm font-medium text-white/80 hover:text-white bg-purple-600/80 hover:bg-purple-500 px-4 py-2 rounded-full transition-colors border border-purple-500/50">
+				Fazer Login
+			</a>
+		{/if}
 	</nav>
 
 	<!-- Main Content Grid -->
@@ -197,33 +206,33 @@
 
 			<!-- Input Form -->
 			<div class="p-4 bg-black/40 border-t border-white/10">
-				<form on:submit={submitComment} class="flex flex-col space-y-3">
-					<input 
-						type="text" 
-						bind:value={authorName} 
-						placeholder="Seu nome" 
-						required
-						class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 transition-colors"
-					/>
-					<div class="flex space-x-2">
+				{#if auth.isAuthenticated}
+					<form on:submit={submitComment} class="flex space-x-2">
 						<input 
 							type="text" 
 							bind:value={commentContent} 
-							placeholder="Mensagem..." 
+							placeholder="Sua mensagem..." 
 							required
 							class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 transition-colors"
 						/>
 						<button 
 							type="submit" 
 							class="bg-purple-600 hover:bg-purple-500 text-white rounded-lg px-4 py-2 transition-colors flex items-center justify-center disabled:opacity-50"
-							disabled={!authorName.trim() || !commentContent.trim()}
+							disabled={!commentContent.trim()}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
 							</svg>
 						</button>
+					</form>
+				{:else}
+					<div class="text-center py-2">
+						<p class="text-xs text-white/60 mb-2">Para participar do chat</p>
+						<a href="/login" class="inline-block bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+							Faça Login
+						</a>
 					</div>
-				</form>
+				{/if}
 			</div>
 		</div>
 
