@@ -77,6 +77,30 @@ defmodule OndinaApiWeb.VideoController do
     end
   end
 
+  def analytics(conn, _params) do
+    user_id = conn.assigns.current_user.id
+    
+    stats = Catalog.get_user_analytics(user_id)
+    top_videos = Catalog.get_top_videos(user_id)
+    
+    # Transforma a struct %Video{} para map simples a fim de evitar carregamentos extras desnecessários no client
+    serialized_top = Enum.map(top_videos, fn v -> 
+      %{
+        id: v.id,
+        title: v.title,
+        thumbnail_url: v.thumbnail_url,
+        views: v.views
+      }
+    end)
+
+    json(conn, %{
+      data: %{
+        stats: stats,
+        top_videos: serialized_top
+      }
+    })
+  end
+
   defp process_hls_video(video_id, video_uuid, input_path) do
     output_folder = Path.join(["priv", "static", "uploads", "videos", video_uuid])
     File.mkdir_p!(output_folder)

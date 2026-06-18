@@ -26,6 +26,7 @@ defmodule OndinaApiWeb.Router do
     pipe_through [:api, :api_auth]
     
     get "/me", AuthController, :me
+    get "/me/analytics", VideoController, :analytics
     get "/me/videos", VideoController, :my_videos
     post "/videos", VideoController, :create
     delete "/videos/:id", VideoController, :delete
