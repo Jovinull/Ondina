@@ -40,6 +40,57 @@ defmodule OndinaApi.Accounts do
   @doc """
   Gets a single user by email.
   """
+  def authenticate_user(email, password) do
+    user = get_user_by_email(email)
+
+    cond do
+      user && Bcrypt.verify_pass(password, user.password_hash) ->
+        {:ok, user}
+      user ->
+        {:error, :unauthorized}
+      true ->
+        Bcrypt.no_user_verify()
+        {:error, :not_found}
+    end
+  end
+
+  alias OndinaApi.Accounts.Follow
+
+  def follow_user(follower_id, creator_id) do
+    if follower_id == creator_id do
+      {:error, "Você não pode se seguir"}
+    else
+      %Follow{}
+      |> Follow.changeset(%{follower_id: follower_id, creator_id: creator_id})
+      |> Repo.insert()
+    end
+  end
+
+  def unfollow_user(follower_id, creator_id) do
+    follow = Repo.get_by(Follow, follower_id: follower_id, creator_id: creator_id)
+    if follow do
+      Repo.delete(follow)
+    else
+      {:error, :not_found}
+    end
+  end
+
+  def is_following?(follower_id, creator_id) do
+    Repo.exists?(
+      from f in Follow,
+      where: f.follower_id == ^follower_id and f.creator_id == ^creator_id
+    )
+  end
+
+  def list_followers(creator_id) do
+    Repo.all(
+      from f in Follow,
+      where: f.creator_id == ^creator_id,
+      preload: [:follower]
+    )
+    |> Enum.map(& &1.follower)
+  end
+
   def get_user_by_email(email) do
     Repo.get_by(User, email: email)
   end

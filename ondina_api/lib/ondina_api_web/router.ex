@@ -16,6 +16,7 @@ defmodule OndinaApiWeb.Router do
     get "/videos/search", VideoController, :search
     get "/videos/:id", VideoController, :show
     post "/videos/:id/view", VideoController, :view
+    get "/creators/:id/follow_status", FollowController, :status
 
     post "/register", AuthController, :register
     post "/login", AuthController, :login
@@ -28,6 +29,9 @@ defmodule OndinaApiWeb.Router do
     get "/me/videos", VideoController, :my_videos
     post "/videos", VideoController, :create
     delete "/videos/:id", VideoController, :delete
+
+    post "/creators/:id/follow", FollowController, :follow
+    delete "/creators/:id/unfollow", FollowController, :unfollow
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
