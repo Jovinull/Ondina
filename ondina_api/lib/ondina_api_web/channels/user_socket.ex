@@ -3,6 +3,7 @@ defmodule OndinaApiWeb.UserSocket do
 
   ## Channels
   channel "video:*", OndinaApiWeb.VideoChannel
+  channel "user_notifications:*", OndinaApiWeb.NotificationChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

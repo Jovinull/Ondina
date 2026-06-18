@@ -96,10 +96,23 @@ defmodule OndinaApiWeb.VideoController do
 
     case System.cmd(ffmpeg_path, args, stderr_to_stdout: true) do
       {_output, 0} ->
-        video = Catalog.get_video!(video_id)
+        video = Catalog.get_video!(video_id) |> OndinaApi.Repo.preload(:user)
         final_url = "http://localhost:4000/uploads/videos/#{video_uuid}/playlist.m3u8"
         Catalog.update_video_status(video, "ready", final_url)
         File.rm(input_path)
+        
+        followers = OndinaApi.Accounts.list_followers(video.user_id)
+        payload = %{
+          video_id: video.id,
+          title: video.title,
+          creator_name: video.user.username,
+          thumbnail_url: video.thumbnail_url
+        }
+        
+        Enum.each(followers, fn follower ->
+          OndinaApiWeb.Endpoint.broadcast("user_notifications:#{follower.id}", "new_video_notification", payload)
+        end)
+        
       {error_output, _status_code} ->
         require Logger
         Logger.error("FFmpeg falhou: #{error_output}")
@@ -110,8 +123,23 @@ defmodule OndinaApiWeb.VideoController do
   end
 
   def show(conn, %{"id" => id}) do
-    video = Catalog.get_video!(id)
-    render(conn, :show, video: video)
+    video = Catalog.get_video!(id) |> OndinaApi.Repo.preload(:user)
+    
+    video_data = %{
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      thumbnail_url: video.thumbnail_url,
+      video_url: video.video_url,
+      views: video.views,
+      likes_count: video.likes_count,
+      dislikes_count: video.dislikes_count,
+      user_id: video.user_id,
+      status: video.status,
+      user_name: if(video.user, do: video.user.username, else: "Desconhecido")
+    }
+
+    json(conn, %{data: video_data})
   end
 
   def view(conn, %{"id" => id}) do
