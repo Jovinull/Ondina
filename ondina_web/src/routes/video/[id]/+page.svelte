@@ -5,9 +5,12 @@
 	import { Socket } from 'phoenix';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
+	import Hls from 'hls.js';
 
 	export let data: PageData;
 	const video = data.video;
+
+	let videoElement: HTMLVideoElement;
 
 	let views = $state(video.views);
 	let justUpdated = $state(false);
@@ -27,6 +30,16 @@
 	let channel: any;
 
 	onMount(async () => {
+		if (video.status === 'ready' && videoElement) {
+			if (Hls.isSupported() && video.video_url.endsWith('.m3u8')) {
+				const hls = new Hls();
+				hls.loadSource(video.video_url);
+				hls.attachMedia(videoElement);
+			} else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+				videoElement.src = video.video_url;
+			}
+		}
+
 		// Estabelece a conexão WebSocket com o Phoenix
 		socket = new Socket('ws://localhost:4000/socket', { params: { token: auth.token } });
 		socket.connect();
@@ -140,14 +153,30 @@
 		<div class="lg:col-span-3 flex flex-col items-center">
 			<!-- Video Player Wrapper -->
 			<div class="relative w-full aspect-video bg-black/80 rounded-2xl shadow-2xl overflow-hidden border border-white/10 backdrop-blur-lg">
-				<video 
-					src={video.video_url}
-					poster={video.thumbnail_url}
-					controls
-					class="w-full h-full outline-none"
-				>
-					Seu navegador não suporta a tag de vídeo.
-				</video>
+				{#if video.status === 'processing'}
+					<div class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md z-20">
+						<div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500 mb-6"></div>
+						<h2 class="text-2xl font-bold text-white mb-2">Processamento em Alta Definição</h2>
+						<p class="text-white/60 text-sm">O vídeo está no laboratório sendo fragmentado para streaming adaptativo.</p>
+					</div>
+				{:else if video.status === 'error'}
+					<div class="absolute inset-0 flex flex-col items-center justify-center bg-red-900/30 backdrop-blur-md z-20">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<h2 class="text-xl font-bold text-white">Falha no Processamento</h2>
+						<p class="text-white/60 text-sm mt-2">O arquivo original estava corrompido ou era incompatível.</p>
+					</div>
+				{:else}
+					<video 
+						bind:this={videoElement}
+						poster={video.thumbnail_url}
+						controls
+						class="w-full h-full outline-none"
+					>
+						Seu navegador não suporta a tag de vídeo.
+					</video>
+				{/if}
 			</div>
 
 			<!-- Video Details -->
