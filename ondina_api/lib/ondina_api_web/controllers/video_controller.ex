@@ -83,7 +83,7 @@ defmodule OndinaApiWeb.VideoController do
     
     output_m3u8 = Path.join([output_folder, "playlist.m3u8"])
     
-    ffmpeg_path = "/home/jovino/bin/ffmpeg"
+    ffmpeg_path = System.find_executable("ffmpeg") || "/home/jovino/bin/ffmpeg"
     args = [
       "-i", input_path,
       "-codec:v", "libx264",
