@@ -7,6 +7,16 @@
 	let loading = $state(true);
 	let errorMsg = $state('');
 
+	let analyticsData = $state<any>(null);
+	let loadingAnalytics = $state(true);
+
+	let engagementRate = $derived(() => {
+		if (!analyticsData) return 0;
+		const { total_likes, total_dislikes, total_views } = analyticsData.stats;
+		if (total_views === 0) return 0;
+		return (((total_likes + total_dislikes) / total_views) * 100).toFixed(1);
+	});
+
 	// Modal States
 	let isModalOpen = $state(false);
 	let videoToDelete = $state<any>(null);
@@ -17,6 +27,7 @@
 			goto('/login');
 		} else if (auth.isAuthenticated) {
 			fetchMyVideos();
+			fetchAnalytics();
 		}
 	});
 
@@ -41,6 +52,22 @@
 			errorMsg = 'Erro de conexão com o servidor.';
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function fetchAnalytics() {
+		try {
+			const res = await fetch('http://localhost:4000/api/me/analytics', {
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+			if (res.ok) {
+				const data = await res.json();
+				analyticsData = data.data;
+			}
+		} catch (e) {
+			console.error('Falha ao carregar analytics');
+		} finally {
+			loadingAnalytics = false;
 		}
 	}
 
@@ -97,6 +124,120 @@
 			<a href="/upload" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium py-2 px-6 rounded-full transition-all shadow-[0_0_15px_rgba(147,51,234,0.3)]">
 				Novo Vídeo
 			</a>
+		</div>
+
+		<!-- Analytics Dashboard -->
+		<div class="px-8 pt-6">
+			{#if loadingAnalytics}
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+					{#each Array(4) as _}
+						<div class="backdrop-blur-xl bg-white/5 border border-white/10 p-6 rounded-2xl h-28 animate-pulse flex items-center">
+							<div class="w-12 h-12 rounded-xl bg-white/10"></div>
+							<div class="ml-4 space-y-2 flex-1">
+								<div class="h-3 bg-white/10 rounded w-1/2"></div>
+								<div class="h-6 bg-white/10 rounded w-3/4"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if analyticsData}
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+					<!-- Total de Visualizações -->
+					<div class="backdrop-blur-xl bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
+						<div class="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+						<div class="relative z-10 flex items-center">
+							<div class="p-3 bg-purple-500/20 rounded-xl text-purple-400">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+								</svg>
+							</div>
+							<div class="ml-4">
+								<p class="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">Visualizações</p>
+								<p class="text-2xl font-bold text-white drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">{analyticsData.stats.total_views}</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Total de Gostos -->
+					<div class="backdrop-blur-xl bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
+						<div class="absolute inset-0 bg-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+						<div class="relative z-10 flex items-center">
+							<div class="p-3 bg-green-500/20 rounded-xl text-green-400">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+								</svg>
+							</div>
+							<div class="ml-4">
+								<p class="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">Gostos (Likes)</p>
+								<p class="text-2xl font-bold text-white drop-shadow-[0_0_10px_rgba(34,197,94,0.3)]">{analyticsData.stats.total_likes}</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Engajamento -->
+					<div class="backdrop-blur-xl bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
+						<div class="absolute inset-0 bg-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+						<div class="relative z-10 flex items-center">
+							<div class="p-3 bg-pink-500/20 rounded-xl text-pink-400">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+								</svg>
+							</div>
+							<div class="ml-4">
+								<p class="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">Engajamento</p>
+								<p class="text-2xl font-bold text-white drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]">{engagementRate()}%</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Vídeos Ativos -->
+					<div class="backdrop-blur-xl bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
+						<div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+						<div class="relative z-10 flex items-center">
+							<div class="p-3 bg-blue-500/20 rounded-xl text-blue-400">
+								<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+								</svg>
+							</div>
+							<div class="ml-4">
+								<p class="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">Vídeos Ativos</p>
+								<p class="text-2xl font-bold text-white drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]">{analyticsData.stats.total_videos}</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Top Videos -->
+				{#if analyticsData.top_videos.length > 0}
+					<div class="mb-8 backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
+						<h3 class="text-lg font-bold text-white mb-4">Publicações em Destaque</h3>
+						<div class="flex flex-col space-y-4">
+							{#each analyticsData.top_videos as topVid}
+								<div class="flex items-center space-x-4 bg-black/40 rounded-xl p-3 border border-white/5">
+									<div class="w-20 h-12 bg-black/50 rounded-lg overflow-hidden shrink-0 border border-white/10 relative">
+										<img src={topVid.thumbnail_url} alt="Capa" class="w-full h-full object-cover opacity-80" />
+									</div>
+									<div class="flex-1 min-w-0">
+										<p class="font-medium text-white/90 truncate text-sm">{topVid.title}</p>
+										<div class="flex items-center mt-1">
+											<div class="h-1.5 bg-white/10 rounded-full flex-1 overflow-hidden">
+												<div class="h-full bg-gradient-to-r from-purple-500 to-pink-500" style="width: {analyticsData.stats.total_views > 0 ? (topVid.views / analyticsData.stats.total_views) * 100 : 0}%"></div>
+											</div>
+											<span class="ml-3 text-xs text-white/50 w-16 text-right">{topVid.views} views</span>
+										</div>
+									</div>
+									<a href={`/video/${topVid.id}`} class="p-2 text-white/40 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+										</svg>
+									</a>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			{/if}
 		</div>
 
 		<!-- Lista de Vídeos -->
