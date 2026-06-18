@@ -128,6 +128,18 @@ defmodule OndinaApi.Catalog do
   end
 
   @doc """
+  Updates a video status and optionally its video_url.
+  """
+  def update_video_status(%Video{} = video, status, video_url \\ nil) do
+    attrs = %{status: status}
+    attrs = if video_url, do: Map.put(attrs, :video_url, video_url), else: attrs
+
+    video
+    |> Video.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Deletes a video.
 
   ## Examples

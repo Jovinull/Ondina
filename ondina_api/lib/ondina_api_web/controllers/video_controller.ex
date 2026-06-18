@@ -7,7 +7,7 @@ defmodule OndinaApiWeb.VideoController do
   action_fallback OndinaApiWeb.FallbackController
 
   def index(conn, _params) do
-    videos = Catalog.list_videos() |> Repo.preload(:user)
+    videos = Catalog.list_videos() |> OndinaApi.Repo.preload(:user)
     
     videos_data = Enum.map(videos, fn v ->
       %{
@@ -42,38 +42,70 @@ defmodule OndinaApiWeb.VideoController do
     user = conn.assigns.current_user
     
     video_uuid = Ecto.UUID.generate()
-    video_ext = Path.extname(video.filename)
     thumbnail_ext = Path.extname(thumbnail.filename)
 
-    video_filename = "#{video_uuid}#{video_ext}"
     thumbnail_filename = "#{video_uuid}#{thumbnail_ext}"
-
-    video_dest = Path.join(["priv", "static", "uploads", "videos", video_filename])
     thumbnail_dest = Path.join(["priv", "static", "uploads", "thumbnails", thumbnail_filename])
 
-    File.mkdir_p!(Path.dirname(video_dest))
     File.mkdir_p!(Path.dirname(thumbnail_dest))
-
-    File.cp!(video.path, video_dest)
     File.cp!(thumbnail.path, thumbnail_dest)
+
+    temp_video_dest = Path.join(["priv", "static", "uploads", "temp", "#{video_uuid}.mp4"])
+    File.mkdir_p!(Path.dirname(temp_video_dest))
+    File.cp!(video.path, temp_video_dest)
 
     video_params = %{
       title: title,
       description: description,
-      video_url: "http://localhost:4000/uploads/videos/#{video_filename}",
+      video_url: "",
       thumbnail_url: "http://localhost:4000/uploads/thumbnails/#{thumbnail_filename}",
+      status: "processing",
       user_id: user.id
     }
 
     case Catalog.create_video(video_params) do
-      {:ok, video} ->
+      {:ok, created_video} ->
+        Task.start(fn -> process_hls_video(created_video.id, video_uuid, temp_video_dest) end)
+
         conn
         |> put_status(:created)
-        |> json(%{message: "Video criado com sucesso!", id: video.id})
+        |> json(%{message: "Video criado e em processamento!", id: created_video.id})
       {:error, _changeset} ->
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: "Erro ao criar video"})
+    end
+  end
+
+  defp process_hls_video(video_id, video_uuid, input_path) do
+    output_folder = Path.join(["priv", "static", "uploads", "videos", video_uuid])
+    File.mkdir_p!(output_folder)
+    
+    output_m3u8 = Path.join([output_folder, "playlist.m3u8"])
+    
+    ffmpeg_path = "/home/jovino/bin/ffmpeg"
+    args = [
+      "-i", input_path,
+      "-codec:v", "libx264",
+      "-codec:a", "aac",
+      "-f", "hls",
+      "-hls_time", "6",
+      "-hls_playlist_type", "vod",
+      output_m3u8
+    ]
+
+    case System.cmd(ffmpeg_path, args, stderr_to_stdout: true) do
+      {_output, 0} ->
+        video = Catalog.get_video!(video_id)
+        final_url = "http://localhost:4000/uploads/videos/#{video_uuid}/playlist.m3u8"
+        Catalog.update_video_status(video, "ready", final_url)
+        File.rm(input_path)
+      {error_output, _status_code} ->
+        require Logger
+        Logger.error("FFmpeg falhou: #{error_output}")
+        video = Catalog.get_video!(video_id)
+        Catalog.update_video_status(video, "error")
+        File.rm(input_path)
     end
   end
 
