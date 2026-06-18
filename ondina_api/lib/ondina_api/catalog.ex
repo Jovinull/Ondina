@@ -188,4 +188,34 @@ defmodule OndinaApi.Catalog do
   def change_video(%Video{} = video, attrs \\ %{}) do
     Video.changeset(video, attrs)
   end
+
+  @doc """
+  Retorna agregações de estatísticas gerais de um usuário (soma das visualizações, likes e etc).
+  """
+  def get_user_analytics(user_id) do
+    query =
+      from v in Video,
+        where: v.user_id == ^user_id,
+        select: %{
+          total_views: coalesce(sum(v.views), 0),
+          total_likes: coalesce(sum(v.likes_count), 0),
+          total_dislikes: coalesce(sum(v.dislikes_count), 0),
+          total_videos: count(v.id)
+        }
+
+    Repo.one(query) || %{total_views: 0, total_likes: 0, total_dislikes: 0, total_videos: 0}
+  end
+
+  @doc """
+  Retorna os top N vídeos mais vistos de um usuário.
+  """
+  def get_top_videos(user_id, limit \\ 3) do
+    query =
+      from v in Video,
+        where: v.user_id == ^user_id,
+        order_by: [desc: v.views],
+        limit: ^limit
+
+    Repo.all(query)
+  end
 end
