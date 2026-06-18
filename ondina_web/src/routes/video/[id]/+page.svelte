@@ -14,6 +14,7 @@
 
 	let views = $state(video.views);
 	let justUpdated = $state(false);
+	let isFollowing = $state(false);
 	
 	// Reaction States
 	let likesCount = $state(video.likes_count || 0);
@@ -30,6 +31,18 @@
 	let channel: any;
 
 	onMount(async () => {
+		if (auth.isAuthenticated && auth.user?.id !== video.user_id) {
+			try {
+				const res = await fetch(`http://localhost:4000/api/creators/${video.user_id}/follow_status`, {
+					headers: { 'Authorization': `Bearer ${auth.token}` }
+				});
+				const data = await res.json();
+				isFollowing = data.is_following;
+			} catch (e) {
+				console.error('Failed to get follow status');
+			}
+		}
+
 		if (video.status === 'ready' && videoElement) {
 			if (Hls.isSupported() && video.video_url.endsWith('.m3u8')) {
 				const hls = new Hls();
@@ -131,6 +144,28 @@
 		if (!auth.isAuthenticated) return goto('/login');
 		channel.push('dislike_video', {});
 	}
+
+	async function toggleFollow() {
+		if (!auth.isAuthenticated) return goto('/login');
+		
+		try {
+			const method = isFollowing ? 'DELETE' : 'POST';
+			const url = isFollowing 
+				? `http://localhost:4000/api/creators/${video.user_id}/unfollow` 
+				: `http://localhost:4000/api/creators/${video.user_id}/follow`;
+				
+			const res = await fetch(url, {
+				method: method,
+				headers: { 'Authorization': `Bearer ${auth.token}` }
+			});
+			
+			if (res.ok) {
+				isFollowing = !isFollowing;
+			}
+		} catch (e) {
+			console.error('Follow action failed', e);
+		}
+	}
 </script>
 
 <!-- Cinematic Mode Container -->
@@ -197,6 +232,26 @@
 						</div>
 						<span>•</span>
 						<span>Agora mesmo</span>
+					</div>
+
+					<!-- Creator Info & Follow -->
+					<div class="flex items-center space-x-4 mt-6 mb-2">
+						<div class="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-xl font-bold text-white shadow-inner">
+							{video.user_name ? video.user_name.charAt(0).toUpperCase() : 'U'}
+						</div>
+						<div class="flex-1">
+							<p class="text-white font-bold text-lg">{video.user_name || 'Usuário Desconhecido'}</p>
+							<p class="text-white/40 text-sm">Criador de Conteúdo</p>
+						</div>
+						
+						{#if auth.user?.id !== video.user_id}
+							<button 
+								on:click={toggleFollow}
+								class="px-6 py-2.5 rounded-full text-sm font-bold transition-all {isFollowing ? 'bg-white/10 text-white/70 hover:bg-white/20 border border-white/10' : 'bg-purple-600 text-white hover:bg-purple-500 shadow-[0_0_15px_rgba(147,51,234,0.4)]'}"
+							>
+								{isFollowing ? 'Inscrito' : 'Inscrever-se'}
+							</button>
+						{/if}
 					</div>
 
 					<div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 mt-4">
