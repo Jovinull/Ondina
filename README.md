@@ -1,64 +1,33 @@
-# Ondina
+# Ondina - Plataforma de Vídeos e Streaming 🎬🌊
 
-Plataforma de streaming e descoberta de vídeo premium.
+Ondina é uma plataforma completa de streaming e engajamento em tempo real, construída para escalar usando Elixir e oferecer uma interface absurdamente rápida e bela usando SvelteKit.
 
-## Stack Tecnológico
+## Stack Tecnológica 🚀
+- **Backend**: Elixir (1.14), Phoenix, Ecto
+- **Streaming**: FFmpeg para fragmentação assíncrona (HLS Adaptativo)
+- **Mensageria/PubSub**: WebSockets do Phoenix Channels
+- **Frontend**: SvelteKit 5 (Runes), TailwindCSS
+- **Banco de Dados**: PostgreSQL 15
 
-- **Frontend**: SvelteKit, TypeScript, Tailwind CSS
-- **Backend**: Elixir, Phoenix (API mode)
-- **Database**: PostgreSQL
+## Como Rodar Localmente via Docker (Recomendado) 🐳
+A arquitetura foi inteiramente conteinerizada para o seu conforto. O banco de dados, o backend e o frontend subirão unificados. O servidor possui "Live Reload" (Volumes espelhados) ativados para dev!
 
-## Pré-requisitos
-
-Para rodar este projeto localmente, certifique-se de ter as seguintes ferramentas instaladas e rodando na sua máquina:
-
-- **Node.js** (v24+ recomendado) e **NPM**
-- **Elixir** (v1.14+) e **Erlang/OTP**
-- **PostgreSQL** (rodando localmente na porta 5432, com o usuário padrão `postgres` e senha `postgres`)
-
-> **Nota de Instalação do Elixir**: Se você não possui o Elixir instalado, recomendamos usar o [asdf](https://asdf-vm.com/) ou os gerenciadores de pacote do seu sistema operacional.
-
-## Configurando e Rodando Localmente
-
-### 1. Backend (Elixir / Phoenix)
-
-Navegue até a pasta da API:
+### 1. Inicie a Arquitetura Completa
+Na raiz do projeto (`/Ondina`), simplesmente execute:
 ```bash
-cd ondina_api
+docker compose up --build -d
+```
+*Isto irá baixar as imagens, baixar o FFmpeg interno, instalar as dependências hex/npm e subir os três containers (`db`, `api` e `web`).*
+
+### 2. Acesso aos Serviços
+- **Frontend (SvelteKit)**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:4000/api](http://localhost:4000/api)
+- **PostgreSQL**: `localhost:5433`
+
+### 3. Migrações e Seeds do Banco
+Uma vez que o docker compose subir o projeto, execute o script de migração no container da API:
+```bash
+docker exec -it ondina_api mix ecto.setup
 ```
 
-Instale as dependências e crie o banco de dados:
-```bash
-mix deps.get
-mix ecto.setup
-```
-
-Inicie o servidor localmente (porta 4000):
-```bash
-mix phx.server
-```
-
-A API estará rodando em `http://localhost:4000`.
-
-### 2. Frontend (SvelteKit)
-
-Em um terminal separado, navegue até a pasta do frontend:
-```bash
-cd ondina_web
-```
-
-Instale as dependências:
-```bash
-npm install
-```
-
-Inicie o servidor de desenvolvimento (porta 5173):
-```bash
-npm run dev
-```
-
-O frontend estará rodando em `http://localhost:5173`.
-
-## Verificando a Comunicação
-
-Ao acessar `http://localhost:5173`, a página inicial fará uma requisição para a rota `http://localhost:4000/api/status`. Se tudo estiver configurado corretamente (incluindo o CORS no Phoenix), você verá a mensagem "Ondina API is running" renderizada na interface.
+E pronto! Faça o login, mande seus uploads e veja a mágica do HLS fragmentando seus vídeos em tempo real.
